@@ -5,27 +5,27 @@
 
 #pragma once
 
-#include <string>
+#include <cstdlib> // system
 
-// if !defined("${VERSION_MAJOR}") || !defined("${VERSION_MINOR}") || !defined("${VERSION_PATCH}")
-// #error 
-// #endif
+#include <array>   // std::array
+#include <string>  // std::string
 
 namespace eosio { namespace chain {
    class version {
    public:
-      version(const std::string exe, const std::string& vmaj, std::string& vmin, std::string& vp, std::string& vrc, std::string& vs);
+      version();
 
-      std::string version_client(); ///<
-      std::string version_full();   ///<
+      static std::string version_client();   ///<
+      static std::string version_full();     ///<
+      void               validate_version(); ///<
 
    private:
       const std::string executable;     ///< 
       const std::string version_major;  ///< 
       const std::string version_minor;  ///< 
       const std::string version_patch;  ///< 
-      const std::string version_rc;     ///< 
-      const std::string version_status; ///<
+      const std::string version_suffix; ///< 
+      const std::string version_status; ///< 
 
       void check_if_dirty(); ///<
    };

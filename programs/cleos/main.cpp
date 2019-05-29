@@ -93,6 +93,8 @@ Options:
 #include <eosio/chain_plugin/chain_plugin.hpp>
 #include <eosio/chain/contract_types.hpp>
 
+#include <eosio/semantic_versioning/semantic_versioning.hpp>
+
 #pragma push_macro("N")
 #undef N
 
@@ -192,6 +194,8 @@ uint32_t delaysec = 0;
 vector<string> tx_permission;
 
 eosio::client::http::http_context context;
+
+eosio::chain::version version;
 
 void add_standard_transaction_options(CLI::App* cmd, string default_permission = "") {
    CLI::callback_t parse_expiration = [](CLI::results_t res) -> bool {
@@ -2367,7 +2371,8 @@ int main( int argc, char** argv ) {
    version->require_subcommand();
 
    version->add_subcommand("client", localized("Retrieve version information of the client"))->set_callback([] {
-     std::cout << localized("Build version: ${ver}", ("ver", eosio::client::config::version_str)) << std::endl;
+     std::cout << eosio::chain::version::version_client();
+     // std::cout << localized("Build version: ${ver}", ("ver", eosio::client::config::version_str)) << std::endl;
    });
 
    // Create subcommand

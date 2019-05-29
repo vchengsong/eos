@@ -4,15 +4,10 @@ project(
 cmake_minimum_required(
   VERSION 2.8.12 )
 
-file(
-   GLOB
-   HEADERS
-   "./include/eosio/semantic_versioning/semantic_versioning.hpp" )
-
 add_library(
    semantic_versioning
    "./semantic_versioning.cpp"
-   ${HEADERS} )
+   "./include/eosio/semantic_versioning/semantic_versioning.hpp" )
 
 target_include_directories(
    semantic_versioning
