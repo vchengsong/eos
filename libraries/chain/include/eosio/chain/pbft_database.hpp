@@ -131,7 +131,7 @@ namespace eosio { namespace chain {
             composite_key_compare<greater<>, greater<>>
          >,
          ordered_non_unique<
-            tag<by_should_commited_and_block_num`>,
+            tag<by_should_commited_and_block_num>,
             composite_key<
                pbft_ppcm_state,
                member<pbft_ppcm_state, bool, &pbft_ppcm_state::should_committed>,
@@ -150,7 +150,8 @@ namespace eosio { namespace chain {
       indexed_by<
          ordered_unique<
             tag<by_view>,
-            member<pbft_view_state, uint32_t, &pbft_view_state::view>
+            member<pbft_view_state, uint32_t, &pbft_view_state::view>,
+            greater<>
          >,
          ordered_non_unique<
             tag<by_should_view_changed_and_view>,
@@ -190,117 +191,92 @@ namespace eosio { namespace chain {
       ~pbft_database();
       void close();
 
-      bool     should_prepared();
-      bool     should_committed();
-      uint32_t should_view_change();
-      bool     should_new_view(uint32_t target_view);
-
-      bool     is_new_primary(uint32_t target_view);
-
-      uint32_t get_proposed_new_view_num();
+      bool is_valid_prepare( const pbft_prepare& prepare );
+      bool is_valid_commit( const pbft_commit& commit );
+      bool is_valid_checkpoint( const pbft_checkpoint& checkpoint );
+      bool is_valid_stable_checkpoint( const pbft_stable_checkpoint& stable_checkpoint );
+      bool is_valid_view_change( const pbft_view_change& view_change );
+      bool is_valid_new_view( const pbft_new_view& new_view );
 
       void add_pbft_prepare( pbft_prepare& prepare );
       void add_pbft_commit( pbft_commit& commit );
       void add_pbft_view_change( pbft_view_change& view_change );
       void add_pbft_checkpoint( pbft_checkpoint& checkpoint );
 
+      bool     should_prepared();
+      bool     should_committed();
+      uint32_t should_view_change();
+      bool     should_new_view(uint32_t target_view);
+
+
       vector<pbft_prepare> send_and_add_pbft_prepare( 
-         const vector<pbft_prepare>& prepares = vector<pbft_prepare>{}, 
-         uint32_t current_view = 0 );
+         const vector<pbft_prepare>&   prepares = vector<pbft_prepare>{},
+         uint32_t                      current_view = 0 );
 
       vector<pbft_commit> send_and_add_pbft_commit( 
-         const vector<pbft_commit>& commits = vector<pbft_commit>{}, 
-         uint32_t current_view = 0 );
+         const vector<pbft_commit>&    commits = vector<pbft_commit>{},
+         uint32_t                      current_view = 0 );
 
       vector<pbft_view_change> send_and_add_pbft_view_change(
-         const vector<pbft_view_change>& view_changes = vector<pbft_view_change>{},
-         const vector<pbft_prepared_certificate>& prepared_certificates = vector<pbft_prepared_certificate>{},
-         const vector<vector<pbft_committed_certificate>>& committed_certificate_vv = vector<vector<pbft_committed_certificate>>{},
-         uint32_t current_view = 0,
-         uint32_t new_view = 1 );
+         const vector<pbft_view_change>&                    view_changes = vector<pbft_view_change>{},
+         const vector<pbft_prepared_certificate>&           prepared_certificates = vector<pbft_prepared_certificate>{},
+         const vector<vector<pbft_committed_certificate>>&  committed_certificate_vv = vector<vector<pbft_committed_certificate>>{},
+         uint32_t                                           current_view = 0,
+         uint32_t                                           new_view = 1 );
 
       pbft_new_view send_pbft_new_view(
-         const vector<pbft_view_changed_certificate>& view_changed_certificates = vector<pbft_view_changed_certificate>{},
-         uint32_t current_view = 1 );
+         const vector<pbft_view_changed_certificate>&    view_changed_certificates = vector<pbft_view_changed_certificate>{},
+         uint32_t                                        current_view = 1 );
 
-      vector<pbft_checkpoint> generate_and_add_pbft_checkpoint();
+      vector<pbft_checkpoint>                      generate_and_add_pbft_checkpoint();
 
-      bool is_valid_prepare(const pbft_prepare &p);
+      vector<pbft_prepared_certificate>            generate_prepared_certificate();
+      vector<vector<pbft_committed_certificate>>   generate_committed_certificate();
+      vector<pbft_view_changed_certificate>        generate_view_changed_certificate(uint32_t target_view);
 
-      bool is_valid_commit(const pbft_commit &c);
-
-      void commit_local();
-
-      bool pending_pbft_lib();
-
-      void prune_pbft_index();
-
-      uint32_t get_committed_view();
-
-      chain_id_type chain_id();
-
-      vector<pbft_prepared_certificate> generate_prepared_certificate();
-
-      vector<vector<pbft_committed_certificate>> generate_committed_certificate();
-
-      vector<pbft_view_changed_certificate> generate_view_changed_certificate(uint32_t target_view);
-
-      pbft_stable_checkpoint get_stable_checkpoint_by_id(const block_id_type &block_id);
-
-      pbft_stable_checkpoint fetch_stable_checkpoint_from_blk_extn(const signed_block_ptr &b);
-
-      block_info cal_pending_stable_checkpoint() const;
 
       bool should_send_pbft_msg();
-
       bool should_recv_pbft_msg(const public_key_type &pub_key);
+      bool should_stop_view_change(const pbft_view_change &vc);
+      bool is_new_primary(uint32_t target_view);
 
-      public_key_type get_new_view_primary_key(uint32_t target_view);
-
+      void commit_local();
+      bool pending_pbft_lib();
+      void prune_pbft_index();
       void send_pbft_checkpoint();
 
       void checkpoint_local();
-
-      bool is_valid_checkpoint(const pbft_checkpoint &cp);
-
-      bool is_valid_stable_checkpoint(const pbft_stable_checkpoint &scp);
-
-      signal<void(const pbft_prepare &)> pbft_outgoing_prepare;
-      signal<void(const pbft_prepare &)> pbft_incoming_prepare;
-
-      signal<void(const pbft_commit &)> pbft_outgoing_commit;
-      signal<void(const pbft_commit &)> pbft_incoming_commit;
-
-      signal<void(const pbft_view_change &)> pbft_outgoing_view_change;
-      signal<void(const pbft_view_change &)> pbft_incoming_view_change;
-
-      signal<void(const pbft_new_view &)> pbft_outgoing_new_view;
-      signal<void(const pbft_new_view &)> pbft_incoming_new_view;
-
-      signal<void(const pbft_checkpoint &)> pbft_outgoing_checkpoint;
-      signal<void(const pbft_checkpoint &)> pbft_incoming_checkpoint;
-
-      bool is_valid_view_change(const pbft_view_change &vc);
-
-      bool is_valid_new_view(const pbft_new_view &nv);
-
-      bool should_stop_view_change(const pbft_view_change &vc);
-
-      pbft_ppcm_state_ptr get_pbft_ppcm_state_by_id(const block_id_type& id)const;
-
-      vector<pbft_checkpoint_state> get_checkpoints_by_num(const uint32_t& num)const;
-
-      pbft_view_state_ptr get_view_changes_by_target_view(const uint32_t& tv)const;
-
-      vector<uint32_t> get_pbft_watermarks()const;
-
-      flat_map<public_key_type, uint32_t> get_pbft_fork_schedules()const;
-
-      uint32_t get_current_pbft_watermark();
-
       void update_fork_schedules();
 
-      
+      uint32_t                get_proposed_new_view_num();
+      uint32_t                get_committed_view();
+      chain_id_type           chain_id();
+      pbft_stable_checkpoint  get_stable_checkpoint_by_id(const block_id_type &block_id);
+      pbft_stable_checkpoint  fetch_stable_checkpoint_from_blk_extn(const signed_block_ptr &b);
+      public_key_type         get_new_view_primary_key(uint32_t target_view);
+      block_info              cal_pending_stable_checkpoint() const;
+
+
+      signal<void(const pbft_prepare &)>     pbft_outgoing_prepare;
+      signal<void(const pbft_prepare &)>     pbft_incoming_prepare;
+      signal<void(const pbft_commit &)>      pbft_outgoing_commit;
+      signal<void(const pbft_commit &)>      pbft_incoming_commit;
+      signal<void(const pbft_view_change &)> pbft_outgoing_view_change;
+      signal<void(const pbft_view_change &)> pbft_incoming_view_change;
+      signal<void(const pbft_new_view &)>    pbft_outgoing_new_view;
+      signal<void(const pbft_new_view &)>    pbft_incoming_new_view;
+      signal<void(const pbft_checkpoint &)>  pbft_outgoing_checkpoint;
+      signal<void(const pbft_checkpoint &)>  pbft_incoming_checkpoint;
+
+
+      pbft_ppcm_state_ptr                    get_pbft_ppcm_state_by_id( const block_id_type& block_id ) const;
+      vector<pbft_checkpoint_state>          get_checkpoints_by_num( const uint32_t& block_num ) const;
+      pbft_view_state_ptr                    get_view_changes_by_target_view( const uint32_t& target_view ) const;
+      vector<uint32_t>                       get_pbft_watermarks() const;
+      flat_map<public_key_type, uint32_t>    get_pbft_fork_schedules() const;
+      uint32_t                               get_current_pbft_watermark() const;
+
+
    private:
       controller&                                  ctrl;
       uint32_t                                     current_view;
